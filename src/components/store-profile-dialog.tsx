@@ -4,7 +4,10 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { getManagedRestaurant } from '@/api/get-managed-restaurant'
+import {
+  getManagedRestaurant,
+  GetManagedRestaurantResponse,
+} from '@/api/get-managed-restaurant'
 import { updateProfile } from '@/api/update-profile'
 import { queryClient } from '@/lib/react-query'
 
@@ -23,7 +26,7 @@ import { Textarea } from './ui/textarea'
 
 const storeProfileSchema = z.object({
   name: z.string().min(1),
-  description: z.string(),
+  description: z.string().nullable(),
 })
 
 type StoreProfileSchema = z.infer<typeof storeProfileSchema>
@@ -47,12 +50,37 @@ export function StoreProfileDialog() {
     },
   })
 
+  // UI Optimistic Update
+  const updateProfileMutation = (data: StoreProfileSchema) => {
+    const cached = queryClient.getQueryData<GetManagedRestaurantResponse>([
+      'managed-restaurant',
+    ])
+
+    if (cached) {
+      queryClient.setQueryData<GetManagedRestaurantResponse>(
+        ['managed-restaurant'],
+        {
+          ...cached,
+          name: data.name,
+          description: data.description,
+        },
+      )
+    }
+
+    return { cached }
+  }
+
   const { mutate: updateProfileFn } = useMutation({
     mutationFn: updateProfile,
-    // Invalidate the query to refetch the data
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['managed-restaurant'] })
+    // UI Optimistic Update
+    onMutate(data) {
+      const { cached } = updateProfileMutation(data)
+
+      return { previousProfile: cached }
     },
+    // onSuccess: () => {
+    //   queryClient.invalidateQueries({ queryKey: ['managed-restaurant'] })
+    // },
 
     // Update the cache manually
     // onSuccess: (_, { name, description }) => {
@@ -66,6 +94,13 @@ export function StoreProfileDialog() {
     //     description,
     //   })
     // },
+
+    // UI Optimistic Update
+    onError(_, __, context) {
+      if (context?.previousProfile) {
+        updateProfileMutation(context.previousProfile)
+      }
+    },
   })
 
   const onSubmit = handleSubmit((data: StoreProfileSchema) => {
