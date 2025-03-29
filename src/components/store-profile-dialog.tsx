@@ -78,22 +78,6 @@ export function StoreProfileDialog() {
 
       return { previousProfile: cached }
     },
-    // onSuccess: () => {
-    //   queryClient.invalidateQueries({ queryKey: ['managed-restaurant'] })
-    // },
-
-    // Update the cache manually
-    // onSuccess: (_, { name, description }) => {
-    //   const cached = queryClient.getQueryData<GetManagedRestaurantResponse>([
-    //     'managed-restaurant',
-    //   ])
-
-    //   queryClient.setQueryData<GetManagedRestaurantResponse>(['managed-restaurant'], {
-    //     ...cached,
-    //     name,
-    //     description,
-    //   })
-    // },
 
     // UI Optimistic Update
     onError(_, __, context) {
