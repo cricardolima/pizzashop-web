@@ -1,4 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
+import { subDays } from 'date-fns'
+import * as React from 'react'
+import { useMemo } from 'react'
+import { DateRange } from 'react-day-picker'
 import {
   CartesianGrid,
   Line,
@@ -17,11 +21,29 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
+import { Label } from '@/components/ui/label'
 export function RevenueChart() {
-  const { data: dailyRevenueInPeriod } = useQuery({
-    queryKey: ['metrics', 'daily-revenue-in-period'],
-    queryFn: getDailyRevenueInPeriod,
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
+    from: subDays(new Date(), 7),
+    to: new Date(),
   })
+
+  const { data: dailyRevenueInPeriod } = useQuery({
+    queryKey: ['metrics', 'daily-revenue-in-period', dateRange],
+    queryFn: () =>
+      getDailyRevenueInPeriod({
+        from: dateRange?.from,
+        to: dateRange?.to,
+      }),
+  })
+
+  const chartData = useMemo(() => {
+    return dailyRevenueInPeriod?.map((item) => ({
+      date: item.date,
+      receipt: item.receipt / 100,
+    }))
+  }, [dailyRevenueInPeriod])
 
   return (
     <Card className="col-span-6">
@@ -30,11 +52,16 @@ export function RevenueChart() {
           <CardTitle className="text-base font-medium">Receita</CardTitle>
           <CardDescription>Receita diária do período</CardDescription>
         </div>
+
+        <div className="flex items-center gap-3">
+          <Label>Período</Label>
+          <DateRangePicker date={dateRange} onDateChange={setDateRange} />
+        </div>
       </CardHeader>
       <CardContent>
-        {dailyRevenueInPeriod && (
+        {chartData && (
           <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={dailyRevenueInPeriod} style={{ fontSize: 12 }}>
+            <LineChart data={chartData} style={{ fontSize: 12 }}>
               <XAxis
                 dataKey="date"
                 stroke="#888"
