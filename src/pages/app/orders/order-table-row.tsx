@@ -5,7 +5,10 @@ import { ArrowRight, Search, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { approveOrder } from '@/api/approve-order'
 import { cancelOrder } from '@/api/cancel-order'
+import { deliverOrder } from '@/api/deliver-order'
+import { dispatchOrder } from '@/api/dispatch-order'
 import { OrderStatus } from '@/components/order-status'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
@@ -26,13 +29,44 @@ export const OrderTableRow = ({ order }: OrderTableRowProps) => {
   const queryClient = useQueryClient()
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
 
-  const { mutate: cancelOrderFn } = useMutation({
+  const { mutate: cancelOrderFn, isPending: isCancellingOrder } = useMutation({
     mutationFn: () => cancelOrder({ orderId: order.orderId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
     },
     onError: () => {
       toast.error('Erro ao cancelar pedido')
+    },
+  })
+
+  const { mutate: approveOrderFn, isPending: isApprovingOrder } = useMutation({
+    mutationFn: () => approveOrder({ orderId: order.orderId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+    },
+    onError: () => {
+      toast.error('Erro ao aprovar pedido')
+    },
+  })
+
+  const { mutate: dispatchOrderFn, isPending: isDispatchingOrder } =
+    useMutation({
+      mutationFn: () => dispatchOrder({ orderId: order.orderId }),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['orders'] })
+      },
+      onError: () => {
+        toast.error('Erro ao despachar pedido')
+      },
+    })
+
+  const { mutate: deliverOrderFn, isPending: isDeliveringOrder } = useMutation({
+    mutationFn: () => deliverOrder({ orderId: order.orderId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+    },
+    onError: () => {
+      toast.error('Erro ao entregar pedido')
     },
   })
 
@@ -73,16 +107,48 @@ export const OrderTableRow = ({ order }: OrderTableRowProps) => {
         })}
       </TableCell>
       <TableCell>
-        <Button variant="outline" size="xs">
-          <ArrowRight className="mr-2 h-3 w-3" />
-          Aprovar
-        </Button>
+        {order.status === 'pending' && (
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => approveOrderFn()}
+            disabled={isApprovingOrder}
+          >
+            <ArrowRight className="mr-2 h-3 w-3" />
+            Aprovar
+          </Button>
+        )}
+        {order.status === 'processing' && (
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => dispatchOrderFn()}
+            disabled={isDispatchingOrder}
+          >
+            <ArrowRight className="mr-2 h-3 w-3" />
+            Em entrega
+          </Button>
+        )}
+        {order.status === 'delivering' && (
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => deliverOrderFn()}
+            disabled={isDeliveringOrder}
+          >
+            <ArrowRight className="mr-2 h-3 w-3" />
+            Entregue
+          </Button>
+        )}
       </TableCell>
       <TableCell>
         <Button
           variant="ghost"
           size="xs"
-          disabled={!['pending', 'processing'].includes(order.status)}
+          disabled={
+            !['pending', 'processing'].includes(order.status) ||
+            isCancellingOrder
+          }
           onClick={() => cancelOrderFn()}
         >
           <X className="mr-2 h-3 w-3" />
