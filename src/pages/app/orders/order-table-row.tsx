@@ -1,8 +1,11 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ArrowRight, Search, X } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
+import { cancelOrder } from '@/api/cancel-order'
 import { OrderStatus } from '@/components/order-status'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
@@ -20,7 +23,18 @@ interface OrderTableRowProps {
   }
 }
 export const OrderTableRow = ({ order }: OrderTableRowProps) => {
+  const queryClient = useQueryClient()
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
+
+  const { mutate: cancelOrderFn } = useMutation({
+    mutationFn: () => cancelOrder({ orderId: order.orderId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+    },
+    onError: () => {
+      toast.error('Erro ao cancelar pedido')
+    },
+  })
 
   return (
     <TableRow>
@@ -65,7 +79,12 @@ export const OrderTableRow = ({ order }: OrderTableRowProps) => {
         </Button>
       </TableCell>
       <TableCell>
-        <Button variant="ghost" size="xs">
+        <Button
+          variant="ghost"
+          size="xs"
+          disabled={!['pending', 'processing'].includes(order.status)}
+          onClick={() => cancelOrderFn()}
+        >
           <X className="mr-2 h-3 w-3" />
           Cancelar
         </Button>
