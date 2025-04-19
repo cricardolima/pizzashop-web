@@ -32,6 +32,7 @@
   },
   "include": [
     "src",
-    "test"
+    "test",
+    "node_modules/vitest/globals.d.ts"
   ]
 }
