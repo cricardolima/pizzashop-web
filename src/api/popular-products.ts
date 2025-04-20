@@ -2,7 +2,7 @@ import api from '@/lib/axios'
 
 export type GetPopularProductsResponse = Array<{
   product: string
-  ammount: number
+  amount: number
 }>
 
 export const getPopularProducts = async () => {
